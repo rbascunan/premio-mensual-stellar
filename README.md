@@ -4,19 +4,54 @@ Autor: **Roberto Fernando Bascuñan Garello**
 
 ## El problema
 
-En la comunidad Stellar Hispana, cada mes se paga un premio de **50 USD** al embajador que más puntos acumula.
-Hoy ese proceso es manual: alguien revisa una planilla, decide quién ganó y hace la transferencia.
-Eso genera dudas ("¿seguro que yo no tenía más puntos?"), errores y pagos que se atrasan o se olvidan.
+En la comunidad Stellar Hispana, cada mes se paga un premio obligatorio de **50 USD** al embajador
+que más puntos acumuló el mes anterior. Hoy ese pago mensual es manual:
 
-**La solución:** un contrato inteligente que guarda los puntos del mes, decide solo quién ganó,
-espera la aprobación de la administradora y paga el premio a partir del día 10 del mes siguiente,
+1. La administradora espera a que estén cargados todos los puntos del mes.
+2. Revisa el ranking a mano y decide quién ganó.
+3. Busca la wallet del ganador, arma la transferencia y la firma.
+4. Avisa a la comunidad quién ganó.
+
+Cada paso puede fallar: un error al contar, un empate sin regla clara, un pago que se atrasa o se
+olvida, o un pago doble. Y los embajadores no tienen cómo comprobar que el ganador fue el correcto
+("¿seguro que yo no tenía más puntos?").
+
+**La solución:** un contrato inteligente en Stellar que simplifica el pago mensual a **un paso
+humano: aprobar.** El contrato guarda los puntos del mes, decide solo quién ganó, espera la
+aprobación de la administradora y paga los 50 USDC a partir del día 10 del mes siguiente,
 una sola vez y a la vista de todos.
+
+| Antes (manual) | Con el contrato |
+|---|---|
+| La administradora decide el ganador | El contrato decide con una regla fija (más puntos; en empate, el primero en llegar) |
+| Se puede pagar antes de tiempo o dos veces | Solo paga desde el día 10 del mes siguiente y una única vez |
+| Nadie puede verificar el resultado | Puntos, ganador y pago quedan públicos en Stellar |
+| Transferencia armada a mano | El dinero sale del contrato, ya fondeado por la comunidad |
+
+## Para quién es
+
+- **La administradora de la comunidad:** deja de calcular rankings y armar transferencias; solo aprueba.
+- **Los embajadores:** saben que el premio se paga con las mismas reglas para todos y pueden verificarlo.
 
 ## Por qué elegí este problema
 
 Es un problema real de la app [UpTeam](https://github.com/rbascunan/upteam), que gestiona embajadores
 y StellarPoints. Es pequeño, se entiende en una frase y muestra lo que aporta la blockchain:
 reglas que nadie puede saltarse y pagos que cualquiera puede verificar.
+
+## Tips del bootcamp que tuvimos en cuenta
+
+Entre otros consejos de las clases del bootcamp, estos guiaron el diseño:
+
+**Producto** (Alberto Chávez, Trustless Work)
+1. **¿Para quién construyes?** Para la administradora y los embajadores de una comunidad real. Cada función responde a una necesidad de uno de los dos.
+2. **¿Qué no vas a construir? (Simplificar).** El contrato no calcula puntos por actividad ni maneja otros premios; solo resuelve el pago mensual obligatorio. Lo demás queda en la app UpTeam.
+3. **¿Cómo lo vas a explicar? (Comunicar).** El problema se entiende en una frase y el contrato tiene solo 5 funciones con nombres en español.
+
+**Smart contracts en Soroban** (Armando Cortés, Trustless Work)
+1. **`require_auth()` de quien tiene el control.** Solo la firma de la administradora permite cargar puntos o aprobar; `pagar` no necesita firma porque las reglas del contrato deciden a quién y cuándo se paga.
+2. **Código ordenado y seguro.** Todas las claves del storage están en un `enum DataKey`, los imports de `soroban_sdk` son explícitos (nunca `*`) y los errores tienen nombre propio en lugar de usar `unwrap()`.
+3. **Probar a fondo, no solo el camino feliz.** Con `cargo test` se prueban los fallos esperados (sin aprobación, pago doble, firma faltante), se viaja en el tiempo con `env.ledger().set_timestamp(...)` para probar el día 10 y se lee el estado guardado después de cada llamada.
 
 ## Cómo funciona
 
